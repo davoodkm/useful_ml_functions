@@ -1,19 +1,31 @@
-def get_table_null_dtype(df):
-        import pandas as pd
-        null_and_dtype = pd.merge(
-                left = (df.isna().sum().to_frame() / df.shape[0] * 100).round(2).rename(columns={0 : "null_percentage"}),
-                right = df.dtypes.to_frame().rename(columns={0 : "dtype"}),
-                left_index=True,
-                right_index= True,
-                how = "left")
-        null_and_dtype = null_and_dtype.sort_values(by = "null_percentage" , ascending = False)
-        null_and_dtype.index.name = "column_name"
-        return null_and_dtype
+def overview(df , count = True , just_null = False , just_object = False):
+    import pandas as pd
+    
+    print(f"Number of Rows    = {df.shape[0]:,}")
+    print(f"Number of Columns = {df.shape[1]:,}")
+
+    table = pd.DataFrame([])
+    table["Missing Percentage"] = (df.isna().sum().to_frame() / df.shape[0] * 100).round(2)
+    table["Missing Count"] = df.isna().sum()
+    table["Data Type"] = df.dtypes
+    table.index.name = "Column"
+    
+    table = table.sort_values(by = ["Missing Count" , "Data Type"] , ascending = [False , False])
+    
+    if just_object == True:
+        table = table.loc[table["Data Type"] == "object"]
+    if just_null == True:
+        table = table.loc[table["Missing Count"] > 0] 
+    if count == False:
+        table = table.drop("Missing Count" , axis = 1)
+    return table
+
  
-def get_corrolation_heatmap(df , dpi = 600 , save = False):
+def get_corrolation_heatmap(df , dpi = 300 , save = False):
     import seaborn as sbn
     import numpy as np
     import matplotlib.pyplot as plt
+    
     df = df.select_dtypes(include = [np.number]).dropna()
     object_columns = df.dtypes[df.dtypes == "object"].index.values
     if len(object_columns) > 0:
@@ -35,10 +47,10 @@ def get_corrolation_heatmap(df , dpi = 600 , save = False):
         fig.savefig("corrolation_heatmap.png" , dpi = dpi)
     plt.show()
     
-def do_JB_test(A , alpha):
+def do_JB_test(A , alpha = 0.05):
     import scipy.stats as st
     n = A.shape[0]
-    Z = (A - A.mean()) / A.std(ddof=1)
+    Z = (A - A.mean()) / A.std(ddof = 1)
     S_hat = (1 / n) * (Z ** 3).sum()
     K_hat = (1 / n) * (Z ** 4).sum()
     JB = n/6 * (S_hat**2 + ((K_hat-3)**2)/4)
@@ -65,7 +77,7 @@ def get_var_name(var):
         if val is var:
             return name
         
-def get_plot_hist(data , save = False , dpi = 400 , data_name = "Data"):
+def get_histplot(data , save = False , dpi = 300 , data_name = "Data"):
     import seaborn as sbn
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -113,7 +125,7 @@ def calculate_vif(df):
     vif_data["VIF"] = [variance_inflation_factor(X.values , i) for i in range(X.shape[1])]
     return vif_data
 
-def get_plot_hist_all(df , save = False , dpi = 600 , data_name = "Data"):
+def get_histplot_all(df , save = False , dpi = 600 , data_name = "Data"):
     import seaborn as sbn
     import matplotlib.pyplot as plt
     import numpy as np
@@ -170,4 +182,72 @@ def get_plot_knn_boundaries(X , Y , K , save = False):
     plt.ylabel(col2)
     if save == True:
         plt.savefig("KNN_Decision_Boundary.png" , dpi = 600)
+    plt.show()
+    
+def reshaper(text: str) -> str:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    """
+    Prepares Persian/Arabic text for proper display in matplotlib.
+
+    Parameters:
+        text (str): The input Persian/Arabic string.
+
+    Returns:
+        str: The reshaped and bidi-corrected string.
+    """
+    reshaped_text = arabic_reshaper.reshape(text)
+    bidi_text = get_display(reshaped_text)
+    return bidi_text
+
+def do_Shapiro_test(A , alpha = 0.05):
+    import scipy.stats as st
+    stat , p_value = st.shapiro(A.dropna())
+    print('H0: Data IS normally distributed.\nH1: Data is NOT normally distributed.')
+    print(50 * "-")
+    print("Test Statistic =" , stat.round(4))
+    print("P-value =" , f"{p_value.round(4)*100}%")
+    print(50 * "-")
+    if p_value > alpha:
+        print(f"Accept H0; the distribution at α = {alpha} IS normal.")
+    else:
+        print(f"Reject H0; the distribution at α = {alpha} is NOT normal.")
+        
+def get_boxplot(data , save = False , dpi = 300 , data_name = "Data"):
+    import seaborn as sbn
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    plot_title = f"Boxplot of {data_name}"
+    data = pd.Series(data)
+    fig , ax = plt.subplots(figsize=(10, 6))
+    sbn.boxplot(x=data , ax=ax , color="mediumseagreen")
+    ax.set_title(plot_title , fontsize=16 , fontweight='bold')
+    ax.set_xlabel("Value", fontsize=12)
+    ax.set_ylabel("") 
+    ax.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    if save == True:
+        fig.savefig(plot_title + ".png" , dpi = dpi)
+    plt.show()
+    
+def get_boxplot_all(df , save = False , dpi = 300 , data_name = "Data"):
+    import seaborn as sbn
+    import matplotlib.pyplot as plt
+    import numpy as np
+    numeric_df = df.select_dtypes(include = [np.number]).dropna()
+    n_cols = 3
+    n_rows = int(np.ceil(len(numeric_df.columns) / n_cols))
+    fig , axes = plt.subplots(n_rows , n_cols , figsize = (n_cols*5 , n_rows*4))
+    axes = axes.flatten()
+    for i , col in enumerate(numeric_df.columns):
+        sbn.boxplot(x=numeric_df[col] , ax = axes[i] , color = "mediumseagreen")
+        axes[i].set_title(f"Boxplot of {col}" , fontsize = 12 , fontweight = 'bold')
+        axes[i].set_xlabel("Value" , fontsize = 10)
+        axes[i].set_ylabel("") 
+        axes[i].grid(True , linestyle = '--' , alpha = 0.5)
+    for j in range(i+1 , len(axes)):
+        fig.delaxes(axes[j])
+    plt.tight_layout()
+    if save == True:
+        fig.savefig(f"Boxplots of {data_name}.png" , dpi = dpi)
     plt.show()
