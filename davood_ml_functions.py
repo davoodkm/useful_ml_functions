@@ -30,7 +30,7 @@ def get_corrolation_heatmap(df , dpi = 300 , save = False):
     object_columns = df.dtypes[df.dtypes == "object"].index.values
     if len(object_columns) > 0:
         df = df.drop(columns = object_columns)
-    corr = df.corr()
+    corr = df.corr() * 100
     mask = np.triu(np.ones_like(corr, dtype=bool)) # to avoid repetition
     fig , ax = plt.subplots(1,1)
     fig.set_size_inches(20 , 18)
@@ -38,10 +38,17 @@ def get_corrolation_heatmap(df , dpi = 300 , save = False):
                 ax = ax,
                 mask = mask,
                 cmap='coolwarm',
-                annot=True,
+                annot = True,
+                annot_kws = {"size": 14},
+                fmt = ".1f",
                 yticklabels = df.columns,
                 xticklabels = df.columns)
-    ax.set_title('Correlation Matrix')
+    ax.set_title("Correlation Matrix(%)" , fontsize = 20 , fontweight = "bold")
+    ax.tick_params(axis = 'x' , labelsize = 11)
+    ax.tick_params(axis = 'y' , labelsize = 11)
+    if save == True:
+        fig.savefig("corrolation_heatmap.png" , dpi = dpi)
+    plt.show()
     
     if save == True:
         fig.savefig("corrolation_heatmap.png" , dpi = dpi)
