@@ -120,7 +120,7 @@ def get_histplot(data , save = False , dpi = 300 , data_name = "Data"):
     fig , ax = plt.subplots(figsize=(10, 6))
     sbn.histplot(data , ax=ax, color="mediumseagreen", kde=True , edgecolor="white")
     ax.axvline(data.mean() , color='black', linestyle='--', linewidth=1.5 , label = "Mean")
-    ax.axvline(data.median() , color='red', linestyle='--', linewidth=1.5 , label = "Mean")
+    ax.axvline(data.median() , color='red', linestyle='--', linewidth=1.5 , label = "Median")
     ax.set_title(plot_title , fontsize=16 , fontweight='bold')
     ax.set_xlabel("Value", fontsize=12)
     ax.set_ylabel("Frequency", fontsize=12)
@@ -369,3 +369,33 @@ def simple_transformer(df , target = "y" , apply = False):
         df = df[[target] + [f"{col}_best" for col in num_cols] + num_cols]
         return df
     return result
+
+def get_classification_report(y_real , y_pred):
+    from sklearn.metrics import confusion_matrix, classification_report, accuracy_score, f1_score, recall_score, precision_score
+    import matplotlib.pyplot as plt
+    import seaborn as sbn
+    
+    cm = confusion_matrix(y_real , y_pred)
+    accuracy = accuracy_score(y_real , y_pred)
+    f1 = f1_score(y_real , y_pred)
+    recall = recall_score(y_real , y_pred)
+    precision = precision_score(y_real , y_pred)
+    npv = cm[0 , 0] / (cm[0 , 0] + cm[1 , 0])
+    specificity = cm[0 , 0] / (cm[0 , 0] + cm[0 , 1])
+
+
+    print(f"Accuracy = {accuracy*100:.2f}%")
+    print(f"F1-score = {f1*100:.2f}%")
+    print(f"Recall = {recall*100:.2f}%")
+    print(f"Precision = {precision*100:.2f}%")
+    print(f"NPV = {npv*100:.2f}%")
+    print(f"Specificity = {specificity*100:.2f}%")
+    
+    fig , ax = plt.subplots(figsize = (6 , 5))
+    sbn.heatmap(cm , annot = True , fmt = ',' , cmap = 'viridis' ,
+                linewidths = 0.65 , linecolor = 'black' , cbar = False,
+                ax = ax)
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Actual')
+    ax.set_title('Confusion Matrix')
+    plt.show()
